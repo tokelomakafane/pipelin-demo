@@ -34,13 +34,13 @@ jobs:
           exit 1
         fi
     
-    - name: Test nginx config syntax
+    - name: Test Apache config syntax
       run: |
-        # Install nginx for config testing
+        # Install Apache for config testing
         sudo apt-get update
-        sudo apt-get install -y nginx
-        # Test nginx config
-        sudo nginx -t -c /dev/stdin <<< "$(cat nginx.conf | sed 's/listen 8080;/listen 80;/')"
+        sudo apt-get install -y apache2
+        # Test Apache config
+        apachectl configtest
 
   build-and-push:
     needs: test

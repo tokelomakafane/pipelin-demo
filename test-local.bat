@@ -26,17 +26,17 @@ if exist "index.html" (
 )
 
 echo.
-echo [2] Testing nginx config...
-if exist "nginx.conf" (
-    echo ✅ nginx.conf found
-    findstr /C:"listen 8080" nginx.conf >nul
+echo [2] Testing Apache config...
+if exist "httpd.conf" (
+    echo ✅ httpd.conf found
+    findstr /C:"Listen 80" httpd.conf >nul
     if %errorlevel%==0 (
-        echo ✅ nginx config looks good
+        echo ✅ Apache config looks good
     ) else (
-        echo ❌ nginx config incomplete
+        echo ❌ Apache config incomplete
     )
 ) else (
-    echo ❌ nginx.conf not found
+    echo ❌ httpd.conf not found
     exit /b 1
 )
 

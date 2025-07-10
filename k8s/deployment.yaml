@@ -19,7 +19,7 @@ spec:
       - name: thuto-app
         image: ghcr.io/tokelomakafane/pipelin-demo:latest
         ports:
-        - containerPort: 8080
+        - containerPort: 80
         resources:
           requests:
             memory: "32Mi"
@@ -30,12 +30,12 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8080
+            port: 80
           initialDelaySeconds: 10
           periodSeconds: 30
         readinessProbe:
           httpGet:
             path: /health
-            port: 8080
+            port: 80
           initialDelaySeconds: 5
           periodSeconds: 10
