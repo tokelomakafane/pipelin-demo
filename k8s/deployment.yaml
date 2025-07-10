@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: thuto-app
-        image: ghcr.io/your-username/pipelin-demo:IMAGE_TAG
+        image: ghcr.io/tokelomakafane/pipelin-demo:IMAGE_TAG
         ports:
         - containerPort: 8000
         env:

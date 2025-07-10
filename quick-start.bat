@@ -100,7 +100,10 @@ echo   3. Run: venv\Scripts\activate
 echo   4. Run: python manage.py runserver
 echo   5. Visit: http://localhost:8000
 echo.
-echo For production deployment, see DEPLOYMENT_GUIDE.md
+echo For production deployment:
+echo   1. See DEPLOYMENT_GUIDE.md for complete instructions
+echo   2. Use encode-kubeconfig.bat to help with GitHub secrets setup
+echo   3. Read UNDERSTANDING_PIPELINE.md to understand the process
 echo.
 
 set /p answer=Do you want to start the development server now? (y/n): 

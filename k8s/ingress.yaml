@@ -10,11 +10,21 @@ metadata:
 spec:
   tls:
   - hosts:
-    - your-domain.com
-    - www.your-domain.com
+    - demo.thuto.co.ls
+    - www.demo.thuto.co.ls
     secretName: thuto-tls
   rules:
-  - host: your-domain.com
+  - host: demo.thuto.co.ls
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: thuto-service
+            port:
+              number: 80
+  - host: www.demo.thuto.co.ls
     http:
       paths:
       - path: /

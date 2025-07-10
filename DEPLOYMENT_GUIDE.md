@@ -77,7 +77,7 @@ pipelin-demo/
    git add .
    git commit -m "Initial commit: Thuto Django app with CI/CD pipeline"
    git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/pipelin-demo.git
+   git remote add origin git@github.com:tokelomakafane/pipelin-demo.git
    git push -u origin main
    ```
 
@@ -110,39 +110,90 @@ pipelin-demo/
 
 ### Step 4: Configure GitHub Secrets
 
+This step is crucial! GitHub Actions needs access to your Kubernetes cluster to deploy your application.
+
 Go to your repository → Settings → Secrets and variables → Actions
 
 Add the following secrets:
 
-1. **KUBECONFIG**
+1. **KUBECONFIG** - This tells GitHub Actions how to connect to your DigitalOcean Kubernetes cluster
+
+   **What is KUBECONFIG?**
+   - It's a configuration file that contains cluster connection details
+   - You downloaded this file from DigitalOcean in Step 3
+   - It needs to be encoded in base64 format for GitHub secrets
+
+   **For Windows users:**
+   ```powershell
+   # Method 1: Using PowerShell (recommended)
+   # Replace "path\to\your\kubeconfig" with actual path to downloaded file
+   $content = Get-Content "C:\path\to\your\kubeconfig" -Raw
+   [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($content))
+   # Copy the output
+   ```
+
+   **For Linux/Mac users:**
    ```bash
    # Encode your kubeconfig file
    cat path/to/downloaded/kubeconfig | base64 -w 0
-   # Copy the output and paste as KUBECONFIG secret
+   # Copy the output
    ```
+
+   **Alternative for Windows (using online tool):**
+   - Open your kubeconfig file in notepad
+   - Copy all the content
+   - Go to https://www.base64encode.org/
+   - Paste the content and click "Encode"
+   - Copy the encoded result
+
+   **How to add the secret:**
+   1. In your GitHub repository, go to Settings
+   2. Click "Secrets and variables" → "Actions"
+   3. Click "New repository secret"
+   4. Name: `KUBECONFIG`
+   5. Value: Paste the base64 encoded content
+   6. Click "Add secret"
+
+   **⚠️ Important:** Keep this secret secure! It gives full access to your Kubernetes cluster.
 
 ### Step 5: Update Configuration Files
 
-1. **Update deployment image in `k8s/deployment.yaml`**
+1. **✅ COMPLETED: Deployment image updated in `k8s/deployment.yaml`**
    ```yaml
-   # Line 19: Change to your repository
-   image: ghcr.io/YOUR_USERNAME/pipelin-demo:IMAGE_TAG
+   # This has been updated for your repository:
+   image: ghcr.io/tokelomakafane/pipelin-demo:IMAGE_TAG
    ```
+   **✨ This is already done for you!**
 
-2. **Update secrets in `k8s/secrets.yaml`**
-   ```bash
-   # Generate base64 encoded secrets
-   echo -n "your-production-secret-key" | base64
-   echo -n "False" | base64
-   echo -n "your-domain.com,www.your-domain.com" | base64
+2. **✅ UPDATE SECRETS for demo.thuto.co.ls**
+   
+   **Easy way:** Run the provided script:
+   ```cmd
+   generate-secrets.bat
    ```
    
-   Update the secrets.yaml file with these values.
-
-3. **Update domain in `k8s/ingress.yaml`** (if using custom domain)
-   ```yaml
-   # Replace your-domain.com with your actual domain
+   **Manual way (Windows PowerShell):**
+   ```powershell
+   # Generate Django secret key (run this once)
+   $key = -join ((65..90) + (97..122) + (48..57) + (33,64,35,36,37,94,38,42,40,41,45,95,61,43) | Get-Random -Count 50 | ForEach {[char]$_})
+   [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($key))
+   
+   # DEBUG=False
+   [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("False"))
+   
+   # Your domain: demo.thuto.co.ls
+   [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("demo.thuto.co.ls,www.demo.thuto.co.ls"))
    ```
+   
+   **💡 The script will automatically update `k8s/secrets.yaml` with these values!**
+
+3. **✅ COMPLETED: Domain updated in `k8s/ingress.yaml`**
+   ```yaml
+   # This has been updated for your domain:
+   # - demo.thuto.co.ls
+   # - www.demo.thuto.co.ls
+   ```
+   **✨ This is already done for you!**
 
 ### Step 6: Deploy!
 
