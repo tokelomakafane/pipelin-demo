@@ -6,7 +6,7 @@ metadata:
   labels:
     app: thuto-app
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: thuto-app
@@ -17,44 +17,25 @@ spec:
     spec:
       containers:
       - name: thuto-app
-        image: ghcr.io/tokelomakafane/pipelin-demo:IMAGE_TAG
+        image: ghcr.io/tokelomakafane/pipelin-demo:latest
         ports:
-        - containerPort: 8000
-        env:
-        - name: SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: thuto-secrets
-              key: SECRET_KEY
-        - name: DEBUG
-          valueFrom:
-            secretKeyRef:
-              name: thuto-secrets
-              key: DEBUG
-        - name: ALLOWED_HOSTS
-          valueFrom:
-            secretKeyRef:
-              name: thuto-secrets
-              key: ALLOWED_HOSTS
-        envFrom:
-        - configMapRef:
-            name: thuto-config
+        - containerPort: 8080
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "250m"
+            memory: "32Mi"
+            cpu: "50m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "64Mi"
+            cpu: "100m"
         livenessProbe:
           httpGet:
-            path: /
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
         readinessProbe:
           httpGet:
-            path: /
-            port: 8000
+            path: /health
+            port: 8080
           initialDelaySeconds: 5
-          periodSeconds: 5
+          periodSeconds: 10

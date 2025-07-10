@@ -376,8 +376,32 @@ kubectl get pods -n thuto -w
    - Ensure GHCR permissions are correct
    - Check if repository name matches in deployment.yaml
 
-2. **Pod CrashLoopBackOff**
+2. **Pod CrashLoopBackOff or Frequent Restarts**
    ```bash
+   # Pod is starting but then crashing - check logs for errors
+   
+   # 1. Check logs of the restarting pod
+   kubectl logs -n thuto POD_NAME
+   kubectl logs -n thuto POD_NAME --previous  # Previous crash logs
+   
+   # 2. Check pod events for detailed error info
+   kubectl describe pod -n thuto POD_NAME
+   # Look for "Events" section with crash reasons
+   
+   # 3. Common Django issues to check:
+   # - Missing environment variables
+   # - Database connection errors
+   # - Static files collection failures
+   # - Port binding issues
+   
+   # 4. Quick fixes:
+   # Scale down to focus on one pod
+   kubectl scale deployment/thuto-app -n thuto --replicas=1
+   
+   # Check if it's a health check issue
+   kubectl patch deployment thuto-app -n thuto -p '{"spec":{"template":{"spec":{"containers":[{"name":"thuto-app","livenessProbe":null,"readinessProbe":null}]}}}}'
+   
+   # 5. If logs show specific errors, fix them in your code and redeploy
    kubectl logs -n thuto deployment/thuto-app
    # Check for Django configuration errors
    ```

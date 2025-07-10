@@ -1,36 +1,14 @@
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+# Use nginx alpine image for serving static HTML
+FROM nginx:alpine
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Copy HTML file to nginx default directory
+COPY index.html /usr/share/nginx/html/
 
-# Set work directory
-WORKDIR /app
+# Copy custom nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Install system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+# Expose port 8080 (nginx will run on this port)
+EXPOSE 8080
 
-# Install Python dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy project
-COPY . /app/
-
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Create a non-root user
-RUN adduser --disabled-password --gecos '' appuser
-RUN chown -R appuser:appuser /app
-USER appuser
-
-# Expose port
-EXPOSE 8000
-
-# Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "thuto_project.wsgi:application"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
