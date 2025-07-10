@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: thuto-config
+  namespace: thuto
+data:
+  DJANGO_SETTINGS_MODULE: "thuto_project.settings"
+  PYTHONUNBUFFERED: "1"
