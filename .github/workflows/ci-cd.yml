@@ -12,110 +12,113 @@ env:
 
 jobs:
   test:
+    name: 🧪 Run HTML & Apache Tests
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Test HTML syntax
-      run: |
-        # Simple HTML validation
-        if [ -f "index.html" ]; then
-          echo "✅ index.html found"
-          # Check for basic HTML structure
-          if grep -q "<html" index.html && grep -q "<body" index.html && grep -q "</html>" index.html; then
-            echo "✅ HTML structure looks good"
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ✅ Test HTML syntax
+        run: |
+          if [ -f "index.html" ]; then
+            echo "✅ index.html found"
+            if grep -q "<html" index.html && grep -q "<body" index.html && grep -q "</html>" index.html; then
+              echo "✅ HTML structure looks good"
+            else
+              echo "❌ HTML structure incomplete"
+              exit 1
+            fi
           else
-            echo "❌ HTML structure incomplete"
+            echo "❌ index.html not found"
             exit 1
           fi
-        else
-          echo "❌ index.html not found"
-          exit 1
-        fi
-    
-    - name: Test Apache config syntax
-      run: |
-        # Install Apache for config testing
-        sudo apt-get update
-        sudo apt-get install -y apache2
-        # Test Apache config
-        apachectl configtest
 
-    - name: Fix Apache permissions
-      run: |
-        sudo mkdir -p /var/run/apache2
-        sudo chown -R www-data:www-data /var/run/apache2
-        sudo apachectl configtest
+      - name: 🔧 Test Apache config syntax
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apache2
+          apachectl configtest
+
+      - name: 🔐 Fix Apache permissions
+        run: |
+          sudo mkdir -p /var/run/apache2
+          sudo chown -R www-data:www-data /var/run/apache2
+          sudo apachectl configtest
 
   build-and-push:
+    name: 🛠️ Build & Push Docker Image
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     permissions:
       contents: read
       packages: write
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-    
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔐 Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🐳 Build & Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy:
+    name: 🚀 Deploy to Kubernetes (DigitalOcean)
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'latest'
-    
-    - name: Configure kubectl for DigitalOcean
-      run: |
-        echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
-        export KUBECONFIG=kubeconfig
-    
-    - name: Deploy to Kubernetes
-      run: |
-        export KUBECONFIG=kubeconfig
-        # Update the image tag in deployment
-        sed -i "s|IMAGE_TAG|${{ github.sha }}|g" k8s/deployment.yaml
-        kubectl apply -f k8s/
-        kubectl rollout status deployment/thuto-app -n thuto
-    
-    - name: Verify deployment
-      run: |
-        export KUBECONFIG=kubeconfig
-        kubectl get pods -n thuto
-        kubectl get services -n thuto
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: 🔐 Configure kubectl using KUBECONFIG
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=$PWD/kubeconfig
+
+      - name: 🛠️ Replace IMAGE_TAG in Kubernetes manifests
+        run: |
+          export KUBECONFIG=$PWD/kubeconfig
+          sed -i "s|IMAGE_TAG|sha-${{ github.sha }}|g" k8s/deployment.yaml
+
+      - name: 🚀 Apply Kubernetes manifests
+        run: |
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/thuto-app -n thuto
+
+      - name: 📊 Verify deployment
+        run: |
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl get pods -n thuto
+          kubectl get svc -n thuto
