@@ -11,18 +11,21 @@ echo.
 echo [2] Testing HTML file...
 if exist "index.html" (
     echo ✅ index.html exists
-    echo First few lines of HTML:
-    head -n 5 index.html 2>nul || (
-        echo Using type command instead:
-        type index.html | findstr /n "^" | head -n 5 2>nul || (
-            for /f "tokens=*" %%a in ('type index.html') do (
-                echo %%a
-                set /a count+=1
-                if !count! geq 5 goto :done
-            )
-            :done
+    echo Checking HTML content:
+    findstr /C:"Welcome to" index.html >nul 2>&1
+    if %errorlevel%==0 (
+        echo ✅ Found "Welcome to" text
+    ) else (
+        echo ⚠️  "Welcome to" not found, checking for "Thuto"
+        findstr /C:"Thuto" index.html >nul 2>&1
+        if %errorlevel%==0 (
+            echo ✅ Found "Thuto" text - HTML looks good
+        ) else (
+            echo ❌ HTML content validation failed
         )
     )
+    echo File size: 
+    dir index.html | findstr "index.html"
 ) else (
     echo ❌ index.html missing - this will cause build issues
     exit /b 1

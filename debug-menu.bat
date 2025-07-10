@@ -12,26 +12,29 @@ echo Choose what to do:
 echo 1. Emergency diagnosis (check current status)
 echo 2. Complete reset with fixed configuration  
 echo 3. Deploy simple HTML app (recommended)
-echo 4. Test HTML app locally with Docker
-echo 5. Quick fix for pending pods
-echo 6. Quick fix for image pull errors
-echo 7. Check application logs
-echo 8. Test local connectivity
-echo 9. Check ingress and DNS
+echo 4. Simple Docker build and test
+echo 5. Advanced Docker build fix
+echo 6. Quick fix for pending pods
+echo 7. Quick fix for image pull errors
+echo 8. Check application logs
+echo 9. Test local connectivity
+echo A. Check ingress and DNS
 echo 0. Exit
 echo.
 
-set /p choice="Enter your choice (0-9): "
+set /p choice="Enter your choice (0-9, A): "
 
 if "%choice%"=="1" goto DIAGNOSIS
 if "%choice%"=="2" goto RESET
 if "%choice%"=="3" goto SIMPLE
-if "%choice%"=="4" goto TESTLOCAL
-if "%choice%"=="5" goto PENDING
-if "%choice%"=="6" goto IMAGE
-if "%choice%"=="7" goto LOGS
-if "%choice%"=="8" goto LOCAL
-if "%choice%"=="9" goto INGRESS
+if "%choice%"=="4" goto BUILDSIMPLE
+if "%choice%"=="5" goto FIXBUILD
+if "%choice%"=="6" goto PENDING
+if "%choice%"=="7" goto IMAGE
+if "%choice%"=="8" goto LOGS
+if "%choice%"=="9" goto LOCAL
+if "%choice%"=="A" goto INGRESS
+if "%choice%"=="a" goto INGRESS
 if "%choice%"=="0" goto EXIT
 goto MENU
 
@@ -49,6 +52,22 @@ echo ===============================================
 echo DEPLOYING SIMPLE HTML APP (RECOMMENDED)
 echo ===============================================
 call deploy-simple.bat
+goto MENU
+
+:BUILDSIMPLE
+echo.
+echo ===============================================
+echo SIMPLE DOCKER BUILD AND TEST
+echo ===============================================
+call build-simple.bat
+goto MENU
+
+:FIXBUILD
+echo.
+echo ===============================================
+echo ADVANCED DOCKER BUILD FIX
+echo ===============================================
+call fix-build.bat
 goto MENU
 
 :TESTLOCAL
