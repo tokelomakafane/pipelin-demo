@@ -235,10 +235,45 @@ kubectl get services -n thuto
 # Use the EXTERNAL-IP to access your app
 ```
 
-**Option 3: Custom Domain (if configured)**
-- Point your domain A record to the LoadBalancer IP
-- Wait for DNS propagation
-- Access via your domain
+**Option 3: Custom Domain with Cloudflare (demo.thuto.co.ls)**
+
+**🔧 Cloudflare DNS Configuration:**
+1. **Get your LoadBalancer IP:**
+   ```bash
+   kubectl get services -n ingress-nginx
+   # Look for EXTERNAL-IP of the LoadBalancer service
+   ```
+
+2. **Configure Cloudflare DNS:**
+   - Go to Cloudflare dashboard for thuto.co.ls
+   - Add/Edit A record: `demo` → your LoadBalancer IP
+   - Add/Edit A record: `www.demo` → your LoadBalancer IP
+   - Set proxy status to "DNS only" (grey cloud) initially
+   - SSL/TLS mode: "Flexible" or "Full"
+
+3. **Test connectivity:**
+   ```bash
+   # Test internal connectivity first
+   kubectl port-forward service/thuto-service -n thuto 8080:80
+   # Visit http://localhost:8080
+   
+   # If internal works, check external
+   nslookup demo.thuto.co.ls
+   curl -I http://demo.thuto.co.ls
+   ```
+
+**🚨 Troubleshooting Cloudflare Error 521:**
+- Run: `fix-cloudflare-521.bat`
+- Check pod status: `kubectl get pods -n thuto`
+- Check ingress: `kubectl get ingress -n thuto`
+- Verify nginx-ingress controller is running
+
+**Option 4: Direct LoadBalancer Access**
+```bash
+# Get external IP and test directly
+kubectl get services -n ingress-nginx
+# Access via http://EXTERNAL-IP
+```
 
 ## 🔧 Advanced Configuration
 
@@ -291,9 +326,53 @@ For production, consider using DigitalOcean Managed Database:
 
 ## 🚨 Troubleshooting
 
+### 🔍 **FIRST: Check if your deployment exists**
+
+If you get `error: deployments.apps "thuto-app" not found`, follow these steps:
+
+```bash
+# 1. Check if namespace exists
+kubectl get namespaces | grep thuto
+
+# 2. If namespace doesn't exist, create it first
+kubectl apply -f k8s/namespace.yaml
+
+# 3. Check what's in the thuto namespace
+kubectl get all -n thuto
+
+# 4. If nothing exists, deploy everything
+kubectl apply -f k8s/
+
+# 5. Watch the deployment process
+kubectl get pods -n thuto -w
+```
+
 ### Common Issues
 
 1. **Image Pull Errors**
+   ```bash
+   # This means Kubernetes can't download your Docker image from GHCR
+   
+   # 1. Check the exact error
+   kubectl describe pod -n thuto POD_NAME
+   # Look for "Failed to pull image" or "repository does not exist"
+   
+   # 2. Check if image exists in GitHub Container Registry
+   # Go to: https://github.com/tokelomakafane/pipelin-demo/pkgs/container/pipelin-demo
+   
+   # 3. Check GitHub Actions build status
+   # Go to: https://github.com/tokelomakafane/pipelin-demo/actions
+   
+   # 4. Quick fix - use a working image tag
+   kubectl patch deployment thuto-app -n thuto -p '{"spec":{"template":{"spec":{"containers":[{"name":"thuto-app","image":"ghcr.io/tokelomakafane/pipelin-demo:main-latest"}]}]}}}}'
+   
+   # 5. Or use latest tag if available
+   kubectl patch deployment thuto-app -n thuto -p '{"spec":{"template":{"spec":{"containers":[{"name":"thuto-app","image":"ghcr.io/tokelomakafane/pipelin-demo:latest"}]}]}}}}'
+   
+   # 6. Check deployment status
+   kubectl get pods -n thuto
+   kubectl logs -n thuto deployment/thuto-app
+   ```
    - Ensure GHCR permissions are correct
    - Check if repository name matches in deployment.yaml
 
@@ -303,28 +382,96 @@ For production, consider using DigitalOcean Managed Database:
    # Check for Django configuration errors
    ```
 
+3. **Pods Stuck in "Pending" Status**
+   ```bash
+   # This means pods can't be scheduled - usually resource or node issues
+   
+   # 1. Check pod details for scheduling issues
+   kubectl describe pods -n thuto
+   # Look for "Events" section for scheduling errors
+   
+   # 2. Check node resources
+   kubectl get nodes
+   kubectl describe nodes
+   
+   # 3. Check if nodes have enough resources
+   kubectl top nodes  # (if metrics-server is installed)
+   
+   # 4. Check resource requests in deployment
+   kubectl get deployment thuto-app -n thuto -o yaml | grep -A 10 resources
+   
+   # 5. Quick fix - reduce resource requests
+   kubectl patch deployment thuto-app -n thuto -p '{"spec":{"template":{"spec":{"containers":[{"name":"thuto-app","resources":{"requests":{"memory":"128Mi","cpu":"100m"},"limits":{"memory":"256Mi","cpu":"200m"}}}]}}}}'
+   
+   # 6. Scale down if needed
+   kubectl scale deployment/thuto-app -n thuto --replicas=1
+   ```
+
 3. **Ingress Not Working**
    - Verify nginx-ingress controller is running
    - Check DNS configuration
    - Ensure domain points to LoadBalancer IP
 
-4. **GitHub Actions Failing**
+4. **Cloudflare Error 521 "Web server is down"**
+   ```bash
+   # This means Cloudflare can reach your domain but your app isn't responding
+   
+   # 1. Check if your app is deployed
+   kubectl get pods -n thuto
+   kubectl get services -n thuto
+   kubectl get ingress -n thuto
+   
+   # 2. Check pod status and logs
+   kubectl describe pods -n thuto
+   kubectl logs -n thuto deployment/thuto-app
+   
+   # 3. Check if LoadBalancer has external IP
+   kubectl get services -n thuto -o wide
+   
+   # 4. Test internal connectivity
+   kubectl port-forward service/thuto-service -n thuto 8080:80
+   # Then visit http://localhost:8080
+   
+   # 5. Check ingress controller
+   kubectl get pods -n ingress-nginx
+   kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+   ```
+
+5. **GitHub Actions Failing**
    - Check if KUBECONFIG secret is properly set
    - Verify repository permissions for GHCR
 
 ### Useful Commands
 
 ```bash
-# View application logs
+# 🔍 TROUBLESHOOTING COMMANDS
+
+# Check if deployment exists
+kubectl get deployments -n thuto
+
+# If deployment doesn't exist, create it manually
+kubectl apply -f k8s/
+
+# View application logs (if deployment exists)
 kubectl logs -n thuto deployment/thuto-app -f
 
-# Check all resources
+# If no deployment, check individual pods
+kubectl get pods -n thuto
+kubectl logs -n thuto POD_NAME
+
+# Check all resources in namespace
 kubectl get all -n thuto
 
-# Describe a failing pod
+# Describe a failing pod for detailed info
 kubectl describe pod -n thuto POD_NAME
 
-# Execute into a pod
+# Check if secrets are properly created
+kubectl get secrets -n thuto
+
+# Check if images can be pulled
+kubectl describe pod -n thuto POD_NAME | grep -i image
+
+# Execute into a pod (if running)
 kubectl exec -it -n thuto POD_NAME -- /bin/bash
 
 # Check HPA status
@@ -332,6 +479,9 @@ kubectl get hpa -n thuto
 
 # Force rolling update
 kubectl rollout restart deployment/thuto-app -n thuto
+
+# 🚀 QUICK TROUBLESHOOTING SCRIPT
+# Run: troubleshoot.bat
 ```
 
 ## 🎯 What You've Accomplished

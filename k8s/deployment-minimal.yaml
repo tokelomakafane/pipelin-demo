@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thuto-app-minimal
+  namespace: thuto
+  labels:
+    app: thuto-app-minimal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thuto-app-minimal
+  template:
+    metadata:
+      labels:
+        app: thuto-app-minimal
+    spec:
+      containers:
+      - name: thuto-app
+        image: ghcr.io/tokelomakafane/pipelin-demo:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: thuto-secrets
+              key: SECRET_KEY
+        - name: DEBUG
+          valueFrom:
+            secretKeyRef:
+              name: thuto-secrets
+              key: DEBUG
+        - name: ALLOWED_HOSTS
+          valueFrom:
+            secretKeyRef:
+              name: thuto-secrets
+              key: ALLOWED_HOSTS
+        envFrom:
+        - configMapRef:
+            name: thuto-config
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
