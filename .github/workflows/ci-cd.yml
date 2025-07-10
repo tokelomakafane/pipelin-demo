@@ -42,6 +42,12 @@ jobs:
         # Test Apache config
         apachectl configtest
 
+    - name: Fix Apache permissions
+      run: |
+        sudo mkdir -p /var/run/apache2
+        sudo chown -R www-data:www-data /var/run/apache2
+        sudo apachectl configtest
+
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
